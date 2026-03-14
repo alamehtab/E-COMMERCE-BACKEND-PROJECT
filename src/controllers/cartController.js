@@ -43,6 +43,8 @@ exports.addToCart = async (req, res) => {
   }
 };
 
+exports.add=async(req,res)=>{}
+
 exports.getCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id })
