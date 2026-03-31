@@ -29,7 +29,7 @@ exports.applyCoupon = async (req, res) => {
         }
         if (orderAmount < coupon.minOrderAmount) {
             return res.status(400).json({
-                message: "Order amount too low"
+                message: "Coupon inapplicable due to amount!"
             })
         }
         let discount = 0
