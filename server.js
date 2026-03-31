@@ -1,5 +1,5 @@
 const express = require("express");
-const mongoose=require("mongoose")
+const mongoose = require("mongoose")
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -8,17 +8,19 @@ const xss = require("xss-clean");
 require("dotenv").config();
 const { connectRedis } = require("./src/config/redis");
 
-const couponRoutes=require("./src/routes/couponRoutes")
+const couponRoutes = require("./src/routes/couponRoutes")
 const authRoutes = require("./src/routes/authRoutes");
-const categoryRoutes=require("./src/routes/categoryRoutes")
-const productRoutes=require("./src/routes/productRoutes")
-const cartRoutes=require("./src/routes/cartRoutes")
-const orderRoutes=require("./src/routes/orderRoutes")
-const reviewRoutes=require("./src/routes/reviewRoutes")
-const wishlistRoutes=require("./src/routes/wishlistRoutes")
+const categoryRoutes = require("./src/routes/categoryRoutes")
+const productRoutes = require("./src/routes/productRoutes")
+const cartRoutes = require("./src/routes/cartRoutes")
+const orderRoutes = require("./src/routes/orderRoutes")
+const reviewRoutes = require("./src/routes/reviewRoutes")
+const wishlistRoutes = require("./src/routes/wishlistRoutes")
+const errorHandler = require("./src/middlewares/errorMiddleware");
 
 
-const app=express()
+
+const app = express()
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
@@ -38,6 +40,7 @@ app.get("/", (req, res) => {
     res.send("E-Commerce API Running");
 });
 
+app.use(errorHandler)
 async function main() {
     try {
         await mongoose.connect(process.env.MONGO_URI)

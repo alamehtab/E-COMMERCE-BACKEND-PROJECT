@@ -100,11 +100,23 @@ exports.getOrderById = async (req, res) => {
 // ADMIN UPDATE ORDER STATUS
 exports.updateOrderStatus = async (req, res) => {
     try {
+        const {status}=req.body
         const order = await Order.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
-        order.status = req.body.status;
+        const validTransitions={
+            placed:["confirmed","cancelled"],
+            confirmed:["shipped","delivered"],
+            shipped:["delivered"],
+            delivered:[],
+            cancelled:[]
+        }
+        const allowed=validTransitions[order.status]
+        if(!allowed.includes(status)){
+            return res.status(402).json({message:`Invalid change from ${order.status} to ${status}.`})
+        }
+        order.status=status
         await order.save();
         return res.json(order);
     } catch (error) {

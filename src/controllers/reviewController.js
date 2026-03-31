@@ -1,5 +1,6 @@
 const Review = require("../models/review")
 const Product = require("../models/product")
+const review = require("../models/review")
 
 // CREATE REVIEW
 exports.createReview = async (req, res) => {
@@ -33,6 +34,7 @@ exports.createReview = async (req, res) => {
         return res.status(500).json({ message: error.message })
     }
 }
+
 // GET PRODUCT REVIEWS
 exports.getProductReviews = async (req, res) => {
     try {
