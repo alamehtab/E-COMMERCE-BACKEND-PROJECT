@@ -8,6 +8,9 @@ exports.addToCart = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (quantity > product.stock) {
+      return res.status(400).json({ message: "limited stock!" })
+    }
     let cart = await Cart.findOne({ user: req.user._id });
     if (!cart) {
       cart = new Cart({
@@ -19,7 +22,11 @@ exports.addToCart = async (req, res) => {
       item => item.product.toString() === productId
     );
     if (itemIndex > -1) {
-      cart.items[itemIndex].quantity += quantity;
+      const newQuantity = cart.items[itemIndex].quantity + quantity;
+      if (newQuantity > product.stock) {
+        return res.status(400).json({ message: "Limited stocks!" })
+      }
+      cart.items[itemIndex].quantity = newQuantity
     } else {
       cart.items.push({
         product: productId,

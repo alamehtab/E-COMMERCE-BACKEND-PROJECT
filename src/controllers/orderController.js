@@ -9,6 +9,15 @@ exports.createOrder = async (req, res) => {
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: "Cart is empty" });
         }
+        for (let item of cart.items) {
+            const product = await Product.findById(item.product._id)
+            if (!product) {
+                return res.status(404).json({ message: "Product not found!" })
+            }
+            if (product.stock < item.quantity) {
+                return res.status(400).json({ message: "Limited stocks!" })
+            }
+        }
         let totalPrice = 0;
         const orderItems = cart.items.map(item => {
             totalPrice += item.product.price * item.quantity;
@@ -26,10 +35,14 @@ exports.createOrder = async (req, res) => {
         });
         // reduce stock
         for (let item of cart.items) {
-            await Product.findByIdAndUpdate(
-                item.product._id,
-                { $inc: { stock: -item.quantity } }
+            const checkProduct = await Product.findByIdAndUpdate(
+                { _id: item.product._id, stock: { $gte: item.quantity } },
+                { $inc: { stock: -item.quantity, sold: item.quantity } },
+                { new: true }
             );
+            if (!checkProduct) {
+                return res.status(400).json({ message: "Stock changed! Try adding again." })
+            }
         }
         // clear cart
         cart.items = [];
@@ -100,23 +113,28 @@ exports.getOrderById = async (req, res) => {
 // ADMIN UPDATE ORDER STATUS
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const {status}=req.body
+        const { status } = req.body
         const order = await Order.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
-        const validTransitions={
-            placed:["confirmed","cancelled"],
-            confirmed:["shipped","delivered"],
-            shipped:["delivered"],
-            delivered:[],
-            cancelled:[]
+        const validTransitions = {
+            placed: ["confirmed", "cancelled"],
+            confirmed: ["shipped", "delivered"],
+            shipped: ["delivered"],
+            delivered: [],
+            cancelled: []
         }
-        const allowed=validTransitions[order.status]
-        if(!allowed.includes(status)){
-            return res.status(402).json({message:`Invalid change from ${order.status} to ${status}.`})
+        const allowed = validTransitions[order.status]
+        if (!allowed.includes(status)) {
+            return res.status(402).json({ message: `Invalid change from ${order.status} to ${status}.` })
         }
-        order.status=status
+        if (status === "cancelled" || order.status !== "cancelled") {
+            for (let item of order.items) {
+                await Product.findByIdAndUpdate({ _id: item.product }, { $inc: { stock: item.quantity, sold: -item.quantity } })
+            }
+        }
+        order.status = status
         await order.save();
         return res.json(order);
     } catch (error) {

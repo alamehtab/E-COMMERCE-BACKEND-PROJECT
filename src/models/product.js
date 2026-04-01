@@ -20,6 +20,10 @@ const productSchema = new mongoose.Schema(
             required: true,
             default: 0
         },
+        sold: {
+            type: Number,
+            default: 0
+        },
         category: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
