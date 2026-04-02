@@ -3,6 +3,7 @@ const Cart = require("../models/cart");
 const Product = require("../models/product");
 
 // CREATE ORDER FROM CART
+// NOT GOING TO BE USED AS ORDER WILL BE CREATED AFTER PAYMENT 
 exports.createOrder = async (req, res) => {
     try {
         const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
