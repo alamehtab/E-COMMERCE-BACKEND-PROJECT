@@ -44,27 +44,34 @@ exports.create = async (req, res) => {
     try {
         const cart = await Cart.findOne({ user: req.user._id }).populate("items.product")
         if (!cart || cart.items.length == 0) {
-            return res.status(401).json({ message: "Cart is empty!" })
+            return res.status(402).json({ message: "Cart is empty!" })
         }
         let totalPrice = 0
-        const amount = cart.items.reduce((total, item) => total + item.product.price * item.quantity, 0)
+        const amount = cart.items.reduce((total, item) => total, item.product.price * item.quantity, 0)
         totalPrice = amount * 100
         const options = {
             amount: totalPrice,
             currency: "INR",
-            receipt: `receipt_${Date.now()}`
+            receipt: `recepit_${Date.now()}`
         }
         const paymentOrder = await razorpay.orders.create(options)
         const payment = await Payment.create({
             user: req.user._id,
-            amount: totalPrice,
-            status: "pending",
+            amount: paymentOrder.amount,
             paymentMethod: "razorpay",
+            status: "pending",
             razorpayOrderId: paymentOrder.id
         })
-        return res.status(200).json({ success: true, message: "Payment initiated!", amount: paymentOrder.amount, currency: paymentOrder.currency, orderId: paymentOrder.id, key: process.env.RAZORPAY_API_KEY })
+        return res.status(200).json({
+            success: true,
+            message: "Paymen initiated!",
+            orderId: paymentOrder.id,
+            amount: paymentOrder.amount,
+            currency: paymentOrder.currency,
+            key: process.env.RAZORPAY_API_KEY
+        })
     } catch (error) {
-
+        return res.status(500).json({ message: error.message })
     }
 }
 
