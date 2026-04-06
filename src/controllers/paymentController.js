@@ -1,5 +1,6 @@
 const razorpay = require("../config/razorpay");
 const Cart = require("../models/cart");
+const payment = require("../models/payment");
 const Payment = require("../models/payment");
 const crypto = require("crypto")
 
@@ -39,6 +40,34 @@ exports.createPayment = async (req, res) => {
     }
 };
 
+exports.create = async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user: req.user._id }).populate("items.product")
+        if (!cart || cart.items.length == 0) {
+            return res.status(401).json({ message: "Cart is empty!" })
+        }
+        let totalPrice = 0
+        const amount = cart.items.reduce((total, item) => total + item.product.price * item.quantity, 0)
+        totalPrice = amount * 100
+        const options = {
+            amount: totalPrice,
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`
+        }
+        const paymentOrder = await razorpay.orders.create(options)
+        const payment = await Payment.create({
+            user: req.user._id,
+            amount: totalPrice,
+            status: "pending",
+            paymentMethod: "razorpay",
+            razorpayOrderId: paymentOrder.id
+        })
+        return res.status(200).json({ success: true, message: "Payment initiated!", amount: paymentOrder.amount, currency: paymentOrder.currency, orderId: paymentOrder.id, key: process.env.RAZORPAY_API_KEY })
+    } catch (error) {
+
+    }
+}
+
 exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
@@ -58,7 +87,7 @@ exports.verifyPayment = async (req, res) => {
 
         payment.status = "success"
         payment.transactionId = razorpay_payment_id
-        payment.razorpaySignature=razorpay_signature
+        payment.razorpaySignature = razorpay_signature
         await payment.save()
 
         const cart = await Cart.findOne({ user: payment.user }).populate("items.product")

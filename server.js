@@ -6,7 +6,6 @@ const morgan = require("morgan");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 require("dotenv").config();
-const { connectRedis } = require("./src/config/redis");
 
 const couponRoutes = require("./src/routes/couponRoutes")
 const authRoutes = require("./src/routes/authRoutes");
@@ -17,7 +16,7 @@ const orderRoutes = require("./src/routes/orderRoutes")
 const reviewRoutes = require("./src/routes/reviewRoutes")
 const wishlistRoutes = require("./src/routes/wishlistRoutes")
 const paymentRoutes = require("./src/routes/paymentRoutes")
-const errorHandler = require("./src/middlewares/errorMiddleware");
+const connectDB = require("./src/config/db");
 
 
 
@@ -42,15 +41,7 @@ app.get("/", (req, res) => {
     res.send("E-Commerce API Running");
 });
 
-app.use(errorHandler)
-async function main() {
-    try {
-        await mongoose.connect(process.env.MONGO_URI)
-        console.log("MongoDB connected");
-    } catch (error) {
-        console.log(error);
-    }
-} main().catch((err) => { console.log(err); })
+connectDB()
 
 const PORT = process.env.PORT || 5000;
 

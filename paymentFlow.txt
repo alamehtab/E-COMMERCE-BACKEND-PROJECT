@@ -2,7 +2,20 @@ STEP 1 ---> USER ADDS PRODUCT TO CART  POST /api/cart/add
 where price is saved with product.price.
 
 STEP 2 ---> USER CLICKS CHECKOUT   POST api/payment/createPayment
-where totalPrice is calculated and razorpay order is created and razorpay return an order_id. Backend saves order_id as razorrpayOrderId. Note: Payment is not made yet. Backend send response with order_id, amount, currency and razorpay_api_key. Key is used for the frontend to open razorpay popup and checkout ui.
+where totalPrice is calculated and razorpay order is created and razorpay return an order_id. Backend saves order_id as razorrpayOrderId. Note: Payment is not made yet. Backend send response with order_id, amount, currency and razorpay_api_key. Key and id is used by the frontend to open razorpay popup and checkout ui.
+razorpay usually returns an object after creating payment order as shown below:
+{
+  id: "order_Mx7abc123xyz",
+  entity: "order",
+  amount: 50000,
+  amount_paid: 0,
+  amount_due: 50000,
+  currency: "INR",
+  receipt: "receipt_1712400000000",
+  status: "created",
+  attempts: 0,
+  created_at: 1712400000
+}
 
 STEP 3 ---> FRONTEND OPEN RAZORPAY CHECKOUT
 where enters payment details for upi, card, etc.
