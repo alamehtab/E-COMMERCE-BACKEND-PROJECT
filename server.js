@@ -16,6 +16,7 @@ const cartRoutes = require("./src/routes/cartRoutes")
 const orderRoutes = require("./src/routes/orderRoutes")
 const reviewRoutes = require("./src/routes/reviewRoutes")
 const wishlistRoutes = require("./src/routes/wishlistRoutes")
+const paymentRoutes = require("./src/routes/paymentRoutes")
 const errorHandler = require("./src/middlewares/errorMiddleware");
 
 
@@ -35,6 +36,7 @@ app.use("/api/order", orderRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/coupon", couponRoutes);
+app.use("/api/payment",paymentRoutes)
 
 app.get("/", (req, res) => {
     res.send("E-Commerce API Running");

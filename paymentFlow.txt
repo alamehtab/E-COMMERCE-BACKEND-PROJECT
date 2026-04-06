@@ -1,0 +1,54 @@
+STEP 1 ---> USER ADDS PRODUCT TO CART  POST /api/cart/add
+where price is saved with product.price.
+
+STEP 2 ---> USER CLICKS CHECKOUT   POST api/payment/createPayment
+where totalPrice is calculated and razorpay order is created and razorpay return an order_id. Backend saves order_id as razorrpayOrderId. Note: Payment is not made yet. Backend send response with order_id, amount, currency and razorpay_api_key. Key is used for the frontend to open razorpay popup and checkout ui.
+
+STEP 3 ---> FRONTEND OPEN RAZORPAY CHECKOUT
+where enters payment details for upi, card, etc.
+
+STEP 4 ---> USER PAYS MONEY
+where backend is not invovled
+
+STEP 5 ---> RAZORPAY RETURNS PAYMENT DETAILS
+which contains razorpay_order_id, razorpay_payment_id and razorpay_signature.
+
+STEP 6 ---> FRONTEND SEND PAYMENT DETAILS AS A PROOF OF REAL PAYMENT
+where frontend calls POST /verifypayment and send razorpay_order_id, razorpay_payment_id and razorpay_signature.
+
+STEP 7 ---> BACKEND VERIFIES PAYMENT 
+STEP 8 ---> BACKEND UPDATES PAYMENT RECORDS 
+STEP 9 ---> CONVERTS CART INTO ORDER AND CREATES ORDER
+STEP 10 ---> REDUCE STOCK AND CLEAR CART
+
+OVERALL STRUCTURED WORK FLOW
+       ↓↓↓
+Add Product to Cart
+        ↓
+Price locked in cart
+        ↓
+User clicks Checkout
+        ↓
+Frontend → createPayment API
+        ↓
+Backend creates Razorpay Order
+        ↓
+Payment record saved (pending)
+        ↓
+Frontend opens Razorpay Checkout
+        ↓
+User completes payment
+        ↓
+Razorpay returns payment data
+        ↓
+Frontend → verifyPayment API
+        ↓
+Backend verifies signature (crypto)
+        ↓
+Payment marked success
+        ↓
+Order created
+        ↓
+Stock reduced
+        ↓
+Cart cleared

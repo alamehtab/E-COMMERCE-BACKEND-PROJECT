@@ -13,7 +13,7 @@ const paymentSchema = new mongoose.Schema({
     amount: Number,
     paymentMethod: {
         type: String,
-        enum: ["mock", "stripe"],
+        enum: ["mock", "razorpay"],
         default: "mock"
     },
     status: {
@@ -21,7 +21,9 @@ const paymentSchema = new mongoose.Schema({
         enum: ["pending", "success", "failed"],
         default: "pending"
     },
-    transactionId: String
+    razorpayOrderId: String,
+    razorpayPaymentId: String,
+    razorpaySignature: String,
 }, { timestamps: true });
 
 module.exports = mongoose.model("Payment", paymentSchema);
