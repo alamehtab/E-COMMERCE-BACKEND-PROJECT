@@ -55,39 +55,6 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-exports.create = async (req, res) => {
-    try {
-        const cart = await Cart.findOne({ user: req.user._id }).populate("item.product")
-        if (!cart || cart.items.length === 0) {
-            return res.status(401).json({ message: "Cart is empty!" })
-        }
-        let totalPrice = 0
-        const orderItems = cart.items.map((item) => {
-            totalPrice += item.product.price * item.quantity
-            return {
-                product: item.product._id,
-                quantity: item.quantity,
-                price: item.product.price
-            }
-        })
-        const order = await Order.create({
-            user: req.user._id,
-            items: orderItems,
-            totalPrice,
-            shippingAddress: req.body.shippingAddress
-        })
-        for (let item of cart.items) {
-            await Product.findByIdAndUpdate(item.product._id, { $inc: { stock: -item.quantity } })
-        }
-        cart.items = []
-        cart.totalPrice = 0
-        await cart.save()
-        return res.status(201).json({ message: "Order created successfully", order })
-    } catch (error) {
-        return res.status(500).json({ message: error.message })
-    }
-}
-
 // GET USER ORDERS
 exports.getMyOrders = async (req, res) => {
     try {
