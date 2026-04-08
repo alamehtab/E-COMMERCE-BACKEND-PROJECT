@@ -46,6 +46,7 @@ exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
+        // razorpay uses orderId and paymentId as a signature
         const body = razorpay_order_id + "|" + razorpay_payment_id
 
         const expectedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_SECRET_KEY).update(body.toString()).digest("hex")
@@ -106,8 +107,10 @@ exports.verifyPayment = async (req, res) => {
 
 exports.razorpayWebhook = async (req, res) => {
     try {
+        // razorpay send signature in header and raw json string in the body.
         const webhookSignature = req.headers["x-razorpay-signature"];
 
+        // while using webhook razorpay signs the whole body. so we have to hash the whole body
         const expectedSignature = crypto
             .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
             .update(JSON.stringify(req.body))
