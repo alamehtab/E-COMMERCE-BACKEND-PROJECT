@@ -144,7 +144,7 @@ exports.razorpayWebhook = async (req, res) => {
                 return res.status(200).send("Already processed");
             }
             payment.status = "success";
-            payment.transactionId = razorpayPaymentId;
+            payment.razorpayPaymentId = razorpayPaymentId;
             payment.razorpaySignature = webhookSignature
             await payment.save();
 
@@ -186,8 +186,8 @@ exports.razorpayWebhook = async (req, res) => {
             cart.items = [];
             cart.totalPrice = 0;
             await cart.save();
+            return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
-        return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!", data: order });
 
     } catch (err) {
         console.error("Webhook Error:", err);
