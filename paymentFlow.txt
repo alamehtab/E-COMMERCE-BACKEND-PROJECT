@@ -21,7 +21,7 @@ STEP 3 ---> FRONTEND OPEN RAZORPAY CHECKOUT
 where enters payment details for upi, card, etc.
 
 STEP 4 ---> USER PAYS MONEY
-where backend is not invovled
+where backend is not invovled and razorpay confirms payment with webhooks and 
 
 STEP 5 ---> RAZORPAY RETURNS PAYMENT DETAILS
 which contains razorpay_order_id, razorpay_payment_id and razorpay_signature.

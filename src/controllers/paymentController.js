@@ -1,9 +1,11 @@
 const razorpay = require("../config/razorpay");
 const Cart = require("../models/cart");
-const payment = require("../models/payment");
 const Payment = require("../models/payment");
 const crypto = require("crypto")
+const Order = require("../models/order");
+const { default: items } = require("razorpay/dist/types/items");
 
+// create payment order
 exports.createPayment = async (req, res) => {
     try {
         const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
@@ -40,41 +42,7 @@ exports.createPayment = async (req, res) => {
     }
 };
 
-exports.create = async (req, res) => {
-    try {
-        const cart = await Cart.findOne({ user: req.user._id }).populate("items.product")
-        if (!cart || cart.items.length == 0) {
-            return res.status(404).json({ message: "Cart is empty!" })
-        }
-        let totalPrice = 0
-        const amount = cart.items.reduce((total, item) => total + item.product.price * item.quantity, 0)
-        totalPrice = amount * 100
-        const options = {
-            amount: totalPrice,
-            currency: "INR",
-            receipt: `receipt_${Date.now()}`
-        }
-        const paymentOrder = await razorpay.orders.create(options)
-        const payment = await Payment.create({
-            user: req.user._id,
-            amount: totalPrice,
-            status: "pending",
-            paymentMethod: "razorpay",
-            razorpayOrderId: paymentOrder.id
-        })
-        return res.status(200).json({
-            success: true,
-            message: "Payment initiated!",
-            orderId: paymentOrder.id,
-            amount: paymentOrder.amount,
-            currency: paymentOrder.currency,
-            key: process.env.RAZORPAY_API_KEY
-        })
-    } catch (error) {
-        return res.status(500).json({ message: error.message })
-    }
-}
-
+//verify payment of the user (without webhooks)
 exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
@@ -134,5 +102,98 @@ exports.verifyPayment = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json({ message: error.message })
+    }
+};
+
+exports.razorpayWebhook = async (req, res) => {
+    try {
+        const crypto = require("crypto");
+
+        const webhookSignature = req.headers["x-razorpay-signature"];
+
+        const expectedSignature = crypto
+            .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+            .update(JSON.stringify(req.body))
+            .digest("hex");
+
+        if (expectedSignature !== webhookSignature) {
+            return res.status(400).json({ message: "Invalid webhook signature" });
+        }
+
+        const event = req.body.event;
+
+        if (event === "payment.captured") {
+
+            const paymentEntity = req.body.payload.payment.entity;
+
+            const razorpayOrderId = paymentEntity.order_id;
+            const razorpayPaymentId = paymentEntity.id;
+
+            const payment = await Payment.findOne({
+                razorpayOrderId,
+            });
+
+            // we are using 200 because if we use 400 razorpay will think that webhook failed and will retry again and again which may lead to webhook spam.
+            if (!payment) {
+                console.log("Payment record not found. Ignoring webhook.");
+                return res.status(200).send("Payment not found");
+            }
+
+            if (payment.status === "success") {
+                console.log("Webhook already processed.");
+                return res.status(200).send("Already processed");
+            }
+            payment.status = "success";
+            payment.transactionId = razorpayPaymentId;
+            payment.razorpaySignature=webhookSignature
+            await payment.save();
+
+            const cart = await Cart.findOne({
+                user: payment.user,
+            }).populate("items.product");
+
+            if (!cart || cart.items.length === 0) {
+                return res.status(200).send("Cart empty");
+            }
+
+            let totalPrice = 0;
+
+            const orderItems = cart.items.map((item) => {
+                totalPrice += item.product.price * item.quantity;
+
+                return {
+                    product: item.product._id,
+                    quantity: item.quantity,
+                    price: item.product.price,
+                };
+            });
+
+            const order = await Order.create({
+                user: payment.user,
+                items: orderItems,
+                totalPrice,
+                status: "placed",
+            });
+
+            payment.order = order._id;
+            await payment.save();
+
+            for (const item of cart.items) {
+                await Product.findByIdAndUpdate(item.product._id, {
+                    $inc: {
+                        stock: -item.quantity,
+                        sold: item.quantity,
+                    },
+                });
+            }
+            cart.items = [];
+            cart.totalPrice = 0;
+            await cart.save();
+        }
+        res.status(200).json({ received: true });
+
+    } catch (err) {
+        console.error("Webhook Error:", err);
+        res.status(500).json({ message: err.message });
     }
 };
