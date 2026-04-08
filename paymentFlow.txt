@@ -21,9 +21,23 @@ STEP 3 ---> FRONTEND OPEN RAZORPAY CHECKOUT
 where enters payment details for upi, card, etc.
 
 STEP 4 ---> USER PAYS MONEY
-where backend is not invovled and razorpay confirms payment with webhooks and 
+where backend is not invovled and razorpay confirms payment with webhooks. When the payment succeeds razorpay send a request to backend POST /api/payment/razorpay-webhook where body is:
+{
+  "entity": "event",
+  "event": "payment.captured",
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_29QQoUBi66xm2f",
+        "order_id": "order_9A33XWu170gUtm",
+        "status": "captured",
+        "amount": 50000
+      }
+    }
+  }
+} 
 
-STEP 5 ---> RAZORPAY RETURNS PAYMENT DETAILS
+STEP 5 ---> RAZORPAY RETURNS PAYMENT DETAILS TO FRONTEND
 which contains razorpay_order_id, razorpay_payment_id and razorpay_signature.
 
 STEP 6 ---> FRONTEND SEND PAYMENT DETAILS AS A PROOF OF REAL PAYMENT

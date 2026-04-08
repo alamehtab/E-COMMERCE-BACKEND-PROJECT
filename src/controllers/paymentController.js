@@ -3,7 +3,6 @@ const Cart = require("../models/cart");
 const Payment = require("../models/payment");
 const crypto = require("crypto")
 const Order = require("../models/order");
-const { default: items } = require("razorpay/dist/types/items");
 
 // create payment order
 exports.createPayment = async (req, res) => {
@@ -107,8 +106,6 @@ exports.verifyPayment = async (req, res) => {
 
 exports.razorpayWebhook = async (req, res) => {
     try {
-        const crypto = require("crypto");
-
         const webhookSignature = req.headers["x-razorpay-signature"];
 
         const expectedSignature = crypto
@@ -145,12 +142,10 @@ exports.razorpayWebhook = async (req, res) => {
             }
             payment.status = "success";
             payment.transactionId = razorpayPaymentId;
-            payment.razorpaySignature=webhookSignature
+            payment.razorpaySignature = webhookSignature
             await payment.save();
 
-            const cart = await Cart.findOne({
-                user: payment.user,
-            }).populate("items.product");
+            const cart = await Cart.findOne({ user: payment.user, }).populate("items.product");
 
             if (!cart || cart.items.length === 0) {
                 return res.status(200).send("Cart empty");
@@ -159,12 +154,11 @@ exports.razorpayWebhook = async (req, res) => {
             let totalPrice = 0;
 
             const orderItems = cart.items.map((item) => {
-                totalPrice += item.product.price * item.quantity;
-
+                totalPrice += item.price * item.quantity;
                 return {
                     product: item.product._id,
                     quantity: item.quantity,
-                    price: item.product.price,
+                    price: item.price,
                 };
             });
 
@@ -190,7 +184,7 @@ exports.razorpayWebhook = async (req, res) => {
             cart.totalPrice = 0;
             await cart.save();
         }
-        res.status(200).json({ received: true });
+        return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!", data: order });
 
     } catch (err) {
         console.error("Webhook Error:", err);
