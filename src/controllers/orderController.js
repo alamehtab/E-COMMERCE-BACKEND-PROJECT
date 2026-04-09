@@ -76,6 +76,12 @@ exports.getOrderById = async (req, res) => {
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
+        if (
+            order.user.toString() !== req.user._id.toString() &&
+            req.user.role !== "admin"
+        ) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
         return res.json(order);
     } catch (error) {
         return res.status(500).json({ message: error.message });

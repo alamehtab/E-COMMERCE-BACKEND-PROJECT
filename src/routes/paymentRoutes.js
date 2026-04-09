@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
-const paymentController=require("../controllers/paymentController")
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware")
+const paymentController = require("../controllers/paymentController")
 
-router.post("/create-payment", protect, paymentController.createPayment);
-router.post("/verify-payment",protect,paymentController.verifyPayment)
-router.post("/razorpay-webhook",paymentController.razorpayWebhook)
+router.post("/create-payment", authMiddleware.protect, roleMiddleware.authorize("user"), paymentController.createPayment);
+router.post("/verify-payment", authMiddleware.protect, roleMiddleware.authorize("user"), paymentController.verifyPayment)
+router.post("/razorpay-webhook", paymentController.razorpayWebhook)
 
 module.exports = router;
