@@ -1,6 +1,8 @@
 const Order = require("../models/order");
 const Cart = require("../models/cart");
 const Product = require("../models/product");
+const razorpay = require("../config/razorpay");
+const Payment = require("../models/payment");
 
 // CREATE ORDER FROM CART
 // NOT GOING TO BE USED AS ORDER WILL BE CREATED AFTER PAYMENT 
@@ -99,7 +101,7 @@ exports.updateOrderStatus = async (req, res) => {
         if (!allowed.includes(status)) {
             return res.status(402).json({ message: `Invalid change from ${order.status} to ${status}.` })
         }
-        if (status === "cancelled" || order.status !== "cancelled") {
+        if (status === "cancelled" && order.status !== "cancelled") {
             for (let item of order.items) {
                 await Product.findByIdAndUpdate({ _id: item.product }, { $inc: { stock: item.quantity, sold: -item.quantity } })
             }
@@ -111,3 +113,45 @@ exports.updateOrderStatus = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+exports.cancelOrderAndRefund = async (req, res) => {
+    try {
+        const order = await Order.findById(req.parmas.id)
+        if (!order) {
+            return res.status(404).json({ message: "Order not placed yet!" })
+        }
+        if (order.user.toString() !== req.user._id.toString()) {
+            return res.status(402).json({ message: "Not authorized!" })
+        }
+        if (order.status === "cancelled") {
+            return res.status(400).json({ message: "Order already cancelled!" })
+        }
+        if (order.status === "shipped" || order.status === "delivered") {
+            return res.status(400).json({ message: "Refund not allowed!" })
+        }
+        const payment = await Payment.findOne({ order: order._id })
+        if (!payment || payment.status !== "success") {
+            return res.status(400).jsn({ message: "Order not eligible for refund!" })
+        }
+        if (payment.status === "refunded") {
+            return res.status(400).json({ message: "Refund already allowed!" })
+        }
+        const refund = await razorpay.payments.refund(payment.razorpayPaymentId, { amount: payment.amount })
+        payment.status = "refunded"
+        payment.refundId = refund.id
+        payment.save()
+        order.status = "cancelled"
+        await order.save()
+        for (let item of order.items) {
+            await Product.findByIdAndUpdate(item.product._id, {
+                $inc: {
+                    stock: item.quantity,
+                    sold: -item.quantity
+                }
+            })
+        }
+        return res.status(200).json({ message: "Order cancelled and refund granted!" })
+    } catch (error) {
+        return res.status(500).json({ message: error.message })
+    }
+}
