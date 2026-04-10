@@ -60,45 +60,12 @@ exports.verifyPayment = async (req, res) => {
             return res.status(404).json({ message: "Payment not initiated yet!" })
         }
 
-        payment.status = "success"
-        payment.transactionId = razorpay_payment_id
+        payment.status = "verified"
+        payment.razorpayPaymentId = razorpay_payment_id
         payment.razorpaySignature = razorpay_signature
         await payment.save()
 
-        const cart = await Cart.findOne({ user: payment.user }).populate("items.product")
-        let totalPrice = 0
-        const orderItems = cart.items.map((item) => {
-            totalPrice += item.price * item.quantity
-            return {
-                product: item.product._id,
-                quantity: item.quantity,
-                price: item.price
-            }
-        })
-        const order = await Order.create({
-            user: payment.user,
-            items: orderItems,
-            totalPrice,
-            status: "placed"
-        });
-
-        payment.order = order._id;
-        await payment.save();
-
-        for (const item of cart.items) {
-            await Product.findByIdAndUpdate(item.product._id, {
-                $inc: {
-                    stock: -item.quantity,
-                    sold: item.quantity
-                }
-            });
-        }
-
-        cart.items = [];
-        cart.totalPrice = 0;
-        await cart.save();
-
-        return res.status(200).json({ message: "Payment verified and order created!", order })
+        return res.status(200).json({ message: "Payment verified!" })
 
     } catch (error) {
         return res.status(500).json({ message: error.message })
