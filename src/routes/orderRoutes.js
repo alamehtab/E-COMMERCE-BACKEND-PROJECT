@@ -10,7 +10,7 @@ router.post("/", authMiddleware.protect, orderController.createOrder);
 
 router.get("/my-orders", authMiddleware.protect, orderController.getMyOrders);
 
-router.get("/:id", authMiddleware.protect,authRole.authorize("user"), orderController.getOrderById);
+router.get("/:id", authMiddleware.protect, orderController.getOrderById);
 
 router.put("/:id", authMiddleware.protect, authRole.authorize("admin"), orderController.updateOrderStatus);
 

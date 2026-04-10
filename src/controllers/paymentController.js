@@ -188,7 +188,36 @@ exports.razorpayWebhook = async (req, res) => {
             await cart.save();
             return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
-
+        if (event === "refund.processed") {
+            const refundEntity = req.body.payload.refund.entity
+            const refundId = refundEntity.id
+            const paymentId = refundEntity.payment_id
+            const payment = await Payment.findOne({ razorpayPaymentId: paymentId }).populate("order")
+            if (!payment) {
+                return res.status(200).json({ message: "No payment recorder found!" })
+            }
+            if (payment.status === "refunded") {
+                return res.status(200).json({ message: "Already refunded!" })
+            }
+            payment.status = "refunded"
+            payment.refundId = refundId
+            await payment.save()
+            const order = payment.order
+            if (order && order.status !== "cancelled") {
+                order.status = "cancelled"
+                await order.save()
+                for (let item of order.items) {
+                    await Product.findByIdAndUpdate(item.product, {
+                        $inc: {
+                            stock: item.quantity,
+                            sold: -item.quantity
+                        }
+                    })
+                }
+            }
+            return res.status(200).json({ message: "Refund allowed!" })
+        }
+        return res.status(200).json({ message: "Event ignored!" })
     } catch (err) {
         console.error("Webhook Error:", err);
         res.status(500).json({ message: err.message });

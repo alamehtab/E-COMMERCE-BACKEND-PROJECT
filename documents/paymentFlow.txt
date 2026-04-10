@@ -79,3 +79,15 @@ Order created
 Stock reduced
         ↓
 Cart cleared
+
+USER CANCELS ORDER
+when user cancels order, razorpay refund api is called where user's money is refunded back to its original destination via razorpay.
+refund object generally contains:
+{
+  "id": "rfnd_123",
+  "entity": "refund",
+  "amount": 50000,
+  "currency": "INR",
+  "payment_id": "pay_ABC123",
+  "status": "processed"
+}

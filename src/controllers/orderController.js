@@ -122,7 +122,7 @@ exports.updateOrderStatus = async (req, res) => {
 
 exports.cancelOrderAndRefund = async (req, res) => {
     try {
-        const order = await Order.findById(req.parmas.id)
+        const order = await Order.findById(req.params.id)
         if (!order) {
             return res.status(404).json({ message: "Order not placed yet!" })
         }
@@ -137,26 +137,13 @@ exports.cancelOrderAndRefund = async (req, res) => {
         }
         const payment = await Payment.findOne({ order: order._id })
         if (!payment || payment.status !== "success") {
-            return res.status(400).jsn({ message: "Order not eligible for refund!" })
+            return res.status(400).json({ message: "Order not eligible for refund!" })
         }
         if (payment.status === "refunded") {
             return res.status(400).json({ message: "Refund already allowed!" })
         }
         const refund = await razorpay.payments.refund(payment.razorpayPaymentId, { amount: payment.amount })
-        payment.status = "refunded"
-        payment.refundId = refund.id
-        payment.save()
-        order.status = "cancelled"
-        await order.save()
-        for (let item of order.items) {
-            await Product.findByIdAndUpdate(item.product._id, {
-                $inc: {
-                    stock: item.quantity,
-                    sold: -item.quantity
-                }
-            })
-        }
-        return res.status(200).json({ message: "Order cancelled and refund granted!" })
+        return res.status(200).json({ message: "Order cancelled and refund processed!" })
     } catch (error) {
         return res.status(500).json({ message: error.message })
     }
