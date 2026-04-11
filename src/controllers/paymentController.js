@@ -155,6 +155,26 @@ exports.razorpayWebhook = async (req, res) => {
             await cart.save();
             return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
+        if (event === "payment.failed") {
+            const paymentEntity = req.body.payload.payment.entity
+            const orderId = paymentEntity.order_id
+            const paymentId = paymentEntity.id
+
+            const payment = await Payment.findOne({ razorpayOrderId: orderId })
+            if (!payment) {
+                return res.status(200).json({ success: false, message: "Payment not found!" })
+            }
+            if (payment.status === "failed") {
+                return res.status(200).json({ message: "Payment already marked as failed!" })
+            }
+            payment.status = "failed"
+            payment.razorpayOrderId = orderId
+            payment.razorpayPaymentId = paymentId
+            payment.razorpaySignature = webhookSignature
+            await payment.save()
+            return res.status(200).json({ message: "Payment failed!", paymentId: payment.razorpayPaymentId })
+
+        }
         if (event === "refund.processed") {
             const refundEntity = req.body.payload.refund.entity
             const refundId = refundEntity.id
@@ -167,7 +187,10 @@ exports.razorpayWebhook = async (req, res) => {
                 return res.status(200).json({ message: "Already refunded!" })
             }
             payment.status = "refunded"
+            payment.razorpayPaymentId = paymentId
+            payment.razorpaySignature = webhookSignature
             payment.refundId = refundId
+            payment.refundStatus = "success"
             await payment.save()
             const order = payment.order
             if (order && order.status !== "cancelled") {
@@ -183,6 +206,21 @@ exports.razorpayWebhook = async (req, res) => {
                 }
             }
             return res.status(200).json({ message: "Refund allowed!" })
+        }
+        if (event = "refund.failed") {
+            const refundEntity = req.body.payload.refund.entity
+            const refundId = refundEntity.id
+            const paymentId = refundEntity.payment_id
+            const payment = await Payment.findOne({ razorpayPaymentId: paymentId })
+            if (!payment) {
+                return res.status(200).json({ message: "Payment not found!" })
+            }
+            payment.refundStatus = "failed"
+            payment.refundId = refundId
+            payment.razorpayPaymentId = paymentId
+            payment.razorpaySignature = webhookSignature
+            await payment.save()
+            return res.status(200).json({ message: "Refund failed!" })
         }
         return res.status(200).json({ message: "Event ignored!" })
     } catch (err) {
