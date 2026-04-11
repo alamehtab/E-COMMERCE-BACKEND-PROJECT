@@ -1,5 +1,5 @@
 const User = require("../models/user");
-const generateAccessToken = require("../utils/generateToken");
+const generateAccessToken = require("../utils/accessToken");
 const { sendMail } = require("../utils/mail");
 const generateRefreshToken = require("../utils/refreshToken");
 const bcrypt = require("bcryptjs")
