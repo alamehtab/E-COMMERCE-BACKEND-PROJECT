@@ -1,4 +1,5 @@
 const Product = require("../models/product");
+const redisClient = require("redis")
 
 // CREATE PRODUCT
 exports.createProduct = async (req, res) => {
@@ -25,6 +26,12 @@ exports.createProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
     try {
+        const cacheKey = `products:${JSON.stringify(req.query)}`
+        const cachedData = await redisClient.get(cacheKey)
+        if (cachedData) {
+            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        }
+
         const page = Number(req.query.page) || 1
         const limit = Number(req.query.limit) || 10
         const skip = (page - 1) * limit
@@ -67,13 +74,14 @@ exports.getProducts = async (req, res) => {
             .sort(sortObject)
             .skip(skip)
             .limit(limit)
-
-        return res.status(200).json({
+        const response = {
             totalProducts,
             currentPage: page,
             totalPages: Math.ceil(totalProducts / limit),
             products
-        })
+        }
+        await redisClient.setEx(cacheKey, 60, JSON.stringify(response))
+        return res.status(200).json({ response })
     } catch (error) {
         return res.status(500).json({
             message: error.message
@@ -83,6 +91,11 @@ exports.getProducts = async (req, res) => {
 
 exports.getProduct = async (req, res) => {
     try {
+        const cachekey = `products:${req.params.id}`
+        const cachedData = await redisClient.get(cachekey)
+        if (cachedData) {
+            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        }
         const product = await Product.findById(req.params.id)
             .populate("category");
         if (!product) {
@@ -90,10 +103,12 @@ exports.getProduct = async (req, res) => {
                 message: "Product not found"
             });
         }
-        return res.status(200).json({
+        const response = {
             success: true,
             data: product
-        });
+        }
+        await redisClient.setEx(cachekey, 60, JSON.stringify(response))
+        return res.status(200).json({ response });
     } catch (error) {
         return res.status(500).json({
             message: error.message
@@ -108,6 +123,7 @@ exports.updateProduct = async (req, res) => {
             req.body,
             { new: true }
         );
+        await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             data: product
@@ -122,6 +138,7 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
     try {
         await Product.findByIdAndDelete(req.params.id);
+        await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             message: "Product deleted"
