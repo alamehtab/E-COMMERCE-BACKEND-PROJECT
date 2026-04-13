@@ -1,3 +1,4 @@
+const redisClient = require("../config/redis");
 const Category = require("../models/category");
 
 // CREATE CATEGORY
@@ -19,11 +20,18 @@ exports.createCategory = async (req, res) => {
 // GET ALL CATEGORIES
 exports.getCategories = async (req, res) => {
     try {
+        const cacheKey = "category"
+        const cachedData = await redisClient.get(cacheKey)
+        if (cachedData) {
+            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        }
         const categories = await Category.find();
-        return res.status(200).json({
+        const response = {
             success: true,
             data: categories
-        });
+        }
+        await redisClient.setEx(cacheKey, 60, JSON.stringify(response))
+        return res.status(200).json({ response });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -35,16 +43,23 @@ exports.getCategories = async (req, res) => {
 // GET SINGLE CATEGORY
 exports.getCategory = async (req, res) => {
     try {
+        const cacheKey = `category:${req.params.id}`
+        const cachedData = await redisClient.get(cacheKey)
+        if (cachedData) {
+            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        }
         const category = await Category.findById(req.params.id);
         if (!category) {
             return res.status(404).json({
                 message: "Category not found"
             });
         }
-        return res.status(200).json({
+        const response = {
             success: true,
             data: category
-        });
+        }
+        await redisClient.setEx(cacheKey, 60, JSON.stringify(response))
+        return res.status(200).json({ response });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -61,6 +76,7 @@ exports.updateCategory = async (req, res) => {
             req.body,
             { new: true }
         );
+        await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             data: category
@@ -77,6 +93,7 @@ exports.updateCategory = async (req, res) => {
 exports.deleteCategory = async (req, res) => {
     try {
         await Category.findByIdAndDelete(req.params.id);
+        await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             message: "Category deleted"
