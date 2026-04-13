@@ -14,6 +14,6 @@ router.get("/:id", authMiddleware.protect, orderController.getOrderById);
 
 router.put("/:id", authMiddleware.protect, authRole.authorize("admin"), orderController.updateOrderStatus);
 
-router.put("/cancel/:id", authMiddleware.protect, orderController.cancelOrder);
+router.put("/cancel/:id", authMiddleware.protect, orderController.cancelOrderAndRefund);
 
 module.exports = router;
