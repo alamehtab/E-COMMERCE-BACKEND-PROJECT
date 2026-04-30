@@ -17,15 +17,17 @@ const orderRoutes = require("./src/routes/orderRoutes")
 const reviewRoutes = require("./src/routes/reviewRoutes")
 const wishlistRoutes = require("./src/routes/wishlistRoutes")
 const paymentRoutes = require("./src/routes/paymentRoutes")
-const paymentcontroller=require("./src/controllers/paymentController")
+const paymentcontroller = require("./src/controllers/paymentController")
 const connectDB = require("./src/config/db");
 
 const app = express()
 
-app.post("/api/payment/razorpay/webhook",express.raw({type:"application/json"}),paymentcontroller.razorpayWebhook)
+app.post("/api/payment/razorpay/webhook", express.raw({ type: "application/json" }), paymentcontroller.razorpayWebhook)
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: "*"
+}));
 app.use(helmet());
 app.use(morgan("dev"));
 // app.use(mongoSanitize());
@@ -38,7 +40,7 @@ app.use("/api/order", orderRoutes);
 app.use("/api/review", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/coupon", couponRoutes);
-app.use("/api/payment",paymentRoutes)
+app.use("/api/payment", paymentRoutes)
 
 app.get("/", (req, res) => {
     res.send("E-Commerce API Running");
