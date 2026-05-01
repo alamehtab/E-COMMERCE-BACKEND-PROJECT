@@ -26,11 +26,11 @@ exports.createProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
     try {
-        const cacheKey = `products:${JSON.stringify(req.query)}`
-        const cachedData = await redisClient.get(cacheKey)
-        if (cachedData) {
-            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
-        }
+        // const cacheKey = `products:${JSON.stringify(req.query)}`
+        // const cachedData = await redisClient.get(cacheKey)
+        // if (cachedData) {
+        //     return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        // }
 
         const page = Number(req.query.page) || 1
         const limit = Number(req.query.limit) || 10
@@ -91,11 +91,11 @@ exports.getProducts = async (req, res) => {
 
 exports.getProduct = async (req, res) => {
     try {
-        const cachekey = `products:${req.params.id}`
-        const cachedData = await redisClient.get(cachekey)
-        if (cachedData) {
-            return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
-        }
+        // const cachekey = `products:${req.params.id}`
+        // const cachedData = await redisClient.get(cachekey)
+        // if (cachedData) {
+        //     return res.status(200).json({ message: "Redis data", data: JSON.parse(cachedData) })
+        // }
         const product = await Product.findById(req.params.id)
             .populate("category");
         if (!product) {
@@ -123,7 +123,7 @@ exports.updateProduct = async (req, res) => {
             req.body,
             { new: true }
         );
-        await redisClient.flushAll()
+        // await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             data: product
@@ -138,7 +138,7 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
     try {
         await Product.findByIdAndDelete(req.params.id);
-        await redisClient.flushAll()
+        // await redisClient.flushAll()
         return res.status(200).json({
             success: true,
             message: "Product deleted"
