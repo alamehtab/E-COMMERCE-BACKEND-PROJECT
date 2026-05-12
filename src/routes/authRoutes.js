@@ -2,9 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 const authController= require("../controllers/authController");
-const { upload } = require("../utils/uploadMulter");
+const uploadController = require("../controllers/uploadController");
+const authMiddleware = require("../middleware/authMiddleware");
+const authRole=require("../middleware/roleMiddleware")
+const {upload}=require("../utils/uploadMulter")
 
 router.post("/register", authController.registerUser);
 router.post("/login", authController.loginUser);
+router.post("/upload",authMiddleware.protect,authRole.authorize("admin"),upload.single("profile"),uploadController.uploadProfilePic)
 
 module.exports = router;

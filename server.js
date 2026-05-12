@@ -25,6 +25,7 @@ const app = express()
 app.post("/api/payment/razorpay/webhook", express.raw({ type: "application/json" }), paymentcontroller.razorpayWebhook)
 
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 app.use(cors({
     origin: "*"
 }));
