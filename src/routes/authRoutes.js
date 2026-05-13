@@ -5,7 +5,7 @@ const authController= require("../controllers/authController");
 const uploadController = require("../controllers/uploadController");
 const authMiddleware = require("../middleware/authMiddleware");
 const authRole=require("../middleware/roleMiddleware")
-const {upload}=require("../utils/uploadMulter")
+const {upload}=require("../utils/upload")
 
 router.post("/register", authController.registerUser);
 router.post("/login", authController.loginUser);
