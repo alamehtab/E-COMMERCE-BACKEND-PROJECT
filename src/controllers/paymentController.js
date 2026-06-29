@@ -141,6 +141,10 @@ exports.razorpayWebhook = async (req, res) => {
 
             payment.order = order._id;
             await payment.save();
+            await emailQueue.add("order-confirmation", {
+                orderId: order._id,
+                userId: payment.user
+            });
 
             for (const item of cart.items) {
                 await Product.findByIdAndUpdate(item.product._id, {
@@ -207,7 +211,7 @@ exports.razorpayWebhook = async (req, res) => {
             }
             return res.status(200).json({ message: "Refund allowed!" })
         }
-        if (event = "refund.failed") {
+        if (event === "refund.failed") {
             const refundEntity = req.body.payload.refund.entity
             const refundId = refundEntity.id
             const paymentId = refundEntity.payment_id
