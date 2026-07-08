@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const { sendSMS } = require("../services/smsService");
 const generateAccessToken = require("../utils/accessToken");
 const { sendMail } = require("../utils/mail");
 const generateRefreshToken = require("../utils/refreshToken");
@@ -31,6 +32,8 @@ exports.registerUser = async (req, res) => {
             secure: false,
             sameSite: "strict"
         })
+        await sendMail(email, "Registeration Successful", "Congratulation! You have registered your account successfully.")
+        await sendSMS(user.phone, "Registeration Successful!")
         return res.status(201).json({
             success: true,
             message: "User registered successfully",
@@ -122,6 +125,8 @@ exports.resetPassword = async (req, res) => {
         user.resetOtp = undefined
         user.resetOtpExpiry = undefined
         await user.save()
+        await sendMail(user.email, "Reset Successful", "Your password was changed!")
+        await sendSMS(user.phone, "Your password was changed!")
         return res.status(200).json({ message: "Your password was changed!" })
     } catch (error) {
         return res.status(500).json({ message: error.message })

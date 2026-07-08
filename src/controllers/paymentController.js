@@ -3,6 +3,8 @@ const Cart = require("../models/cart");
 const Payment = require("../models/payment");
 const crypto = require("crypto")
 const Order = require("../models/order");
+const { sendMail } = require("../utils/mail");
+const { sendSMS } = require("../services/smsService");
 
 // create payment order
 exports.createPayment = async (req, res) => {
@@ -98,7 +100,7 @@ exports.razorpayWebhook = async (req, res) => {
 
             const payment = await Payment.findOne({
                 razorpayOrderId,
-            });
+            }).populate("user");
 
             // we are using 200 because if we use 400 razorpay will think that webhook failed and will retry again and again which may lead to webhook spam.
             if (!payment) {
@@ -157,6 +159,8 @@ exports.razorpayWebhook = async (req, res) => {
             cart.items = [];
             cart.totalPrice = 0;
             await cart.save();
+            await sendMail(payment.user.email, "Payment verfied and Order Placed!", `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
+            await sendSMS(payment.user.email, `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
         if (event === "payment.failed") {
@@ -176,6 +180,8 @@ exports.razorpayWebhook = async (req, res) => {
             payment.razorpayPaymentId = paymentId
             payment.razorpaySignature = webhookSignature
             await payment.save()
+            await sendMail(payment.user.email, "Payment failed", `Your payment failed dues to some technical issue with orderId:${paymentEntity.order_id}.`)
+            await sendSMS(payment.user.phone, `Your payment failed dues to some technical issue with orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ message: "Payment failed!", paymentId: payment.razorpayPaymentId })
 
         }
@@ -209,6 +215,8 @@ exports.razorpayWebhook = async (req, res) => {
                     })
                 }
             }
+            await sendMail(payment.user.email, "Refund successful!", `Refund allowed with refund amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
+            await sendSMS(payment.user.phone, `Refund allowed with refund amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ message: "Refund allowed!" })
         }
         if (event === "refund.failed") {
@@ -226,6 +234,8 @@ exports.razorpayWebhook = async (req, res) => {
             await payment.save()
             return res.status(200).json({ message: "Refund failed!" })
         }
+        await sendMail(payment.user.email, "Refund failed!", `Your refund was not processed. OrderId:${paymentEntity.order_id}.`)
+        await sendSMS(payment.user.phone, `Your refund was not processed. OrderId:${paymentEntity.order_id}.`)
         return res.status(200).json({ message: "Event ignored!" })
     } catch (err) {
         console.error("Webhook Error:", err);
