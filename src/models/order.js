@@ -37,6 +37,10 @@ const orderSchema = new mongoose.Schema({
         city: String,
         postalCode: String,
         country: String
+    },
+    invoiceUrl: {
+        type: String,
+        default: ""
     }
 }, { timestamps: true });
 
