@@ -5,6 +5,8 @@ const crypto = require("crypto")
 const Order = require("../models/order");
 const { sendMail } = require("../utils/mail");
 const { sendSMS } = require("../services/smsService");
+const { generateInvoice } = require("../services/invoiceService");
+const fs = require('fs')
 
 // create payment order
 exports.createPayment = async (req, res) => {
@@ -159,8 +161,22 @@ exports.razorpayWebhook = async (req, res) => {
             cart.items = [];
             cart.totalPrice = 0;
             await cart.save();
-            await sendMail(payment.user.email, "Payment verfied and Order Placed!", `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
-            await sendSMS(payment.user.email, `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
+
+            const invoice = await generateInvoice(order._id)
+            order.invoiceUrl = invoice.invoiceUrl
+            await order.save()
+
+            await sendMail(payment.user.email, "Payment verfied and Order Placed!", `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`,
+                [
+                    {
+                        fileName: `Invoices-${order._id}.pdf`,
+                        path: invoice.pdfPath
+                    }
+                ]
+            )
+            await fs.promises.unlink(invoice.pdfPath)
+
+            await sendSMS(payment.user.phone, `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
         if (event === "payment.failed") {

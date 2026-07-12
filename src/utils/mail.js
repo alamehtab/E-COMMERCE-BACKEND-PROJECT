@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer")
-exports.sendMail = async (email, subject, text) => {
+exports.sendMail = async (email, subject, text, attachments = []) => {
     try {
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -12,7 +12,8 @@ exports.sendMail = async (email, subject, text) => {
             from: process.env.USER_EMAIL,
             to: email,
             subject,
-            text
+            text,
+            attachments
         })
     } catch (error) {
         return res.status(500).json({ message: error.message })

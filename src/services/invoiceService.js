@@ -7,14 +7,15 @@ const cloudinary = require("../config/cloudinary");
 const invoiceTemplate = require("../templates/invoiceTemplate");
 
 exports.generateInvoice = async (orderId) => {
+    let browser;
     try {
         const order = await Order.findById(orderId).populate("user").populate("items.product")
         if (!order) {
-            return res.status(404).json({ sucess: false, message: "Order not found!" })
+            throw new Error("Order not found!")
         }
         const html = invoiceTemplate(order)
 
-        const browser = await puppeteer.launch({
+        browser = await puppeteer.launch({
             headless: true // opens chrome without showing the chrome window
         })
         const page = await browser.newPage() // opening a new tab in chrome browser
@@ -42,10 +43,10 @@ exports.generateInvoice = async (orderId) => {
             folder: 'ecommerce-invoices',
             public_id: `invoices_${order._id}`
         })
-        await fs.promises.unlink(pdfPath)
-        return uploadFile.secure_url
+        // await fs.promises.unlink(pdfPath)
+        return { invoiceUrl: uploadFile.secure_url, pdfPath }
     } catch (error) {
-        return res.status(500).json({ success: false, message: "Something went wrong!" })
+        throw new Error(error)
     } finally {
         if (browser) {
             await browser.close()
