@@ -7,6 +7,7 @@ const { sendMail } = require("../utils/mail");
 const { sendSMS } = require("../services/smsService");
 const { generateInvoice } = require("../services/invoiceService");
 const fs = require('fs')
+const orderQueue = require("../queues/order.queue");
 
 // create payment order
 exports.createPayment = async (req, res) => {
@@ -162,21 +163,26 @@ exports.razorpayWebhook = async (req, res) => {
             cart.totalPrice = 0;
             await cart.save();
 
-            const invoice = await generateInvoice(order._id)
-            order.invoiceUrl = invoice.invoiceUrl
-            await order.save()
+            // const invoice = await generateInvoice(order._id)
+            // order.invoiceUrl = invoice.invoiceUrl
+            // await order.save()
 
-            await sendMail(payment.user.email, "Payment verfied and Order Placed!", `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`,
-                [
-                    {
-                        fileName: `Invoices-${order._id}.pdf`,
-                        path: invoice.pdfPath
-                    }
-                ]
-            )
-            await fs.promises.unlink(invoice.pdfPath)
+            // await sendMail(payment.user.email, "Payment verfied and Order Placed!", `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`,
+            //     [
+            //         {
+            //             fileName: `Invoices-${order._id}.pdf`,
+            //             path: invoice.pdfPath
+            //         }
+            //     ]
+            // )
+            // await fs.promises.unlink(invoice.pdfPath)
 
-            await sendSMS(payment.user.phone, `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
+            // await sendSMS(payment.user.phone, `Your payment has been verified with order amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
+
+            await orderQueue.add("process-order", {
+                orderId: order._id
+            })
+
             return res.status(200).json({ success: true, received: true, message: "Payment verified and order placed!" });
         }
         if (event === "payment.failed") {
@@ -196,8 +202,6 @@ exports.razorpayWebhook = async (req, res) => {
             payment.razorpayPaymentId = paymentId
             payment.razorpaySignature = webhookSignature
             await payment.save()
-            await sendMail(payment.user.email, "Payment failed", `Your payment failed dues to some technical issue with orderId:${paymentEntity.order_id}.`)
-            await sendSMS(payment.user.phone, `Your payment failed dues to some technical issue with orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ message: "Payment failed!", paymentId: payment.razorpayPaymentId })
 
         }
@@ -231,8 +235,6 @@ exports.razorpayWebhook = async (req, res) => {
                     })
                 }
             }
-            await sendMail(payment.user.email, "Refund successful!", `Refund allowed with refund amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
-            await sendSMS(payment.user.phone, `Refund allowed with refund amount ${paymentEntity.amount} and orderId:${paymentEntity.order_id}.`)
             return res.status(200).json({ message: "Refund allowed!" })
         }
         if (event === "refund.failed") {
@@ -250,8 +252,7 @@ exports.razorpayWebhook = async (req, res) => {
             await payment.save()
             return res.status(200).json({ message: "Refund failed!" })
         }
-        await sendMail(payment.user.email, "Refund failed!", `Your refund was not processed. OrderId:${paymentEntity.order_id}.`)
-        await sendSMS(payment.user.phone, `Your refund was not processed. OrderId:${paymentEntity.order_id}.`)
+        
         return res.status(200).json({ message: "Event ignored!" })
     } catch (err) {
         console.error("Webhook Error:", err);
