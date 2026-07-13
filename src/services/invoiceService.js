@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const path = require("path");
 const fs = require("fs");
 
-const Order = require("../models/orderModel");
+const Order = require("../models/order");
 const cloudinary = require("../config/cloudinary");
 const invoiceTemplate = require("../templates/invoiceTemplate");
 

@@ -7,7 +7,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 require("dotenv").config();
 require("./src/config/redis")
-require("./workers/order.worker");
+require("./src/workers/order.worker");
 
 const couponRoutes = require("./src/routes/couponRoutes")
 const authRoutes = require("./src/routes/authRoutes");
