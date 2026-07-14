@@ -4,7 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 // const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
+// const xss = require("xss-clean");
 require("dotenv").config();
 require("./src/config/redis")
 require("./src/workers/order.worker");
@@ -33,7 +33,7 @@ app.use(cors({
 app.use(helmet());
 app.use(morgan("dev"));
 // app.use(mongoSanitize());
-app.use(xss());
+// app.use(xss());
 app.use("/api/auth", authRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
