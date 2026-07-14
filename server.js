@@ -32,7 +32,7 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(mongoSanitize());
+// app.use(mongoSanitize());
 app.use(xss());
 app.use("/api/auth", authRoutes);
 app.use("/api/category", categoryRoutes);
