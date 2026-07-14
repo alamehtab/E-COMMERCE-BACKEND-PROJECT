@@ -3,7 +3,7 @@ const mongoose = require("mongoose")
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const mongoSanitize = require("express-mongo-sanitize");
+// const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 require("dotenv").config();
 require("./src/config/redis")
